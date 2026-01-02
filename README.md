@@ -2,8 +2,6 @@
 
 This repository explains how to add **live National Rail departures for any UK station** to a **Glance** dashboard using **TransportAPI**, with deliberate safeguards to stay within the free API quota.
 
-The setup avoids heavyweight rail data platforms and is suitable for personal dashboards and home servers.
-
 
 ## What this does
 
@@ -30,24 +28,46 @@ The setup avoids heavyweight rail data platforms and is suitable for personal da
 - No background services or message queues required
 - Integrates cleanly with Glance
 
-For personal or household dashboards, TransportAPI is the most practical choice.
+For personal dashboards, TransportAPI is the most practical option.
 
 
 ## Limitations (important)
 
-TransportAPI **free tier** limits:
-
+TransportAPI free tier limits:
 - **30 requests per day**
-- Hard API failures (403) if exceeded
-- No burst allowance
+- Hard failures (403) if exceeded
 
-This configuration is intentionally designed around those constraints.
+Glance has no built-in scheduling or time windows. This setup relies on caching to keep calls low.
 
+Recommended:
+- `cache: 60m` (about 15 calls/day, safely below quota)
 
-## Rate-limiting strategy used here
+## Step 1. Register for TransportAPI
 
-Glance has no built-in scheduling or time windows.  
-Instead, this setup relies on **long caching**.
+1. Create an account at TransportAPI.
+2. Create an application in the dashboard.
+3. Copy your credentials:
+   - `app_id`
+   - `app_key`
 
-```yaml
-cache: 60m
+## Step 2. Find your station CRS code
+
+UK National Rail stations use **CRS codes** (3 letters).
+
+How to find one:
+1. Go to CRS lookup sites (for example, crs.codes).
+2. Search your station name.
+3. Copy the CRS code.
+
+Examples:
+- Deptford → `DEP`
+- London Cannon Street → `CST`
+- Brighton → `BTN`
+
+## Step 3. Add credentials to Glance
+
+Add these environment variables to the Glance container (Komodo stack env vars or `.env` file):
+
+```env
+TRANSPORT_API_ID=your_app_id_here
+TRANSPORT_API_KEY=your_app_key_here
