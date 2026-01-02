@@ -1,7 +1,7 @@
 # National Rail Departures in Glance (Any UK Station)
 
 I wanted to show National Rail departures from my local train station and feed it to my [Glance](https://github.com/glanceapp) Dashboard. However, I could not find any widget made for this. 
-So, i made one and here i explain how to add **live National Rail departures for any UK station** to a **Glance** dashboard using **TransportAPI**, with safeguards to stay within the free API quota (default daily api calls are limited to 30)
+So, i made one and here i explain how to add **live National Rail departures for any UK station** to a [Glance](https://github.com/glanceapp) dashboard using [TransportAPI](https://www.transportapi.com), with safeguards to stay within the free API quota (default daily api calls are limited to 30)
 
 
 ## What this does
