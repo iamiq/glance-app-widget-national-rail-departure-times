@@ -71,3 +71,6 @@ Add these environment variables to the Glance container:
 ```env
 TRANSPORT_API_ID=your_app_id_here
 TRANSPORT_API_KEY=your_app_key_here
+```
+
+## Step 4. Update your glance.yaml
