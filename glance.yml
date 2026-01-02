@@ -1,88 +1,70 @@
 - type: custom-api
   title: Station Departures
-  cache: 60m
-  url: https://transportapi.com/v3/uk/train/station_timetables/STATION.json # Replace STATION with the CRS code for your station
+  cache: 60m # reduces calls so you don’t blow the free tier limit
+  url: https://transportapi.com/v3/uk/train/station_timetables/STATION.json # replace STATION with CRS, e.g. DEP
   query:
     app_id: ${TRANSPORT_API_ID}
     app_key: ${TRANSPORT_API_KEY}
     live: true
 
-    # Optional filters (COMMENTED OUT)
-    # operator: SE                      # Example: Southeastern is "SE"
-    # destination: London Cannon Street # Match depends on API field naming
-    # limit: 6                          # Widget-side limit shown below is more reliable
+  # Optional filters (uncomment to enable)
+  # options:
+  #   operator_code: "SE"                 # e.g. "SE" for Southeastern
+  #   destination_name: "London Cannon Street"
+  #   max_rows: 6
 
   template: |
-    {{/* ======================
-         OPTIONAL FILTERS
-         Uncomment and set values if you want filtering
-         ====================== */}}
-
-    {{/* Filter values (uncomment to activate) */}}
-    {{/* $wantOperator := "SE" */}}                    {{/* e.g. "SE" for Southeastern */}}
-    {{/* $wantDestination := "London Cannon Street" */}}
-    {{/* $maxRows := 6 */}}
-
-    {{/* Default row limit if you don't set $maxRows above */}}
-    {{ $maxRowsDefault := 8 }}
-    {{ $maxRows := (.Vars.IntOr "maxRows" $maxRowsDefault) }}
-
     {{ $services := .JSON.Array "departures.all" }}
+    {{ $wantOp := .Options.StringOr "operator_code" "" }}
+    {{ $wantDest := .Options.StringOr "destination_name" "" }}
+    {{ $maxRows := .Options.IntOr "max_rows" 8 }}
+
     {{ if eq (len $services) 0 }}
       <div class="color-subdue">No departures</div>
     {{ else }}
-
       {{ $shown := 0 }}
-
       <div class="flex flex-column gap-5">
-      {{ range $services }}
+        {{ range $services }}
+          {{ if ge $shown $maxRows }}{{ break }}{{ end }}
 
-        {{/* Stop if we've shown enough rows */}}
-        {{ if ge $shown $maxRows }}{{ break }}{{ end }}
+          {{ $opCode := .String "operator" }}
+          {{ $opName := .String "operator_name" }}
+          {{ $dest := .String "destination_name" }}
 
-        {{ $opCode := .String "operator" }}
-        {{ $opName := .String "operator_name" }}
-        {{ $dest := .String "destination_name" }}
+          {{ $ok := true }}
+          {{ if and (ne $wantOp "") (ne $opCode $wantOp) }}{{ $ok = false }}{{ end }}
+          {{ if and (ne $wantDest "") (ne $dest $wantDest) }}{{ $ok = false }}{{ end }}
 
-        {{/* Filtering logic (inactive unless you set $wantOperator/$wantDestination) */}}
-        {{ $ok := true }}
-        {{/* if and (ne $wantOperator "") (ne $opCode $wantOperator) }}{{ $ok = false }}{{ end */}}
-        {{/* if and (ne $wantDestination "") (ne $dest $wantDestination) }}{{ $ok = false }}{{ end */}}
+          {{ if $ok }}
+            {{ $aim := .String "aimed_departure_time" }}
+            {{ $exp := .String "expected_departure_time" }}
+            {{ $status := .String "status" }}
+            {{ $plat := .String "platform" }}
 
-        {{ if $ok }}
+            <div class="flex justify-between items-center" style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.1);">
+              <div class="flex items-center gap-10">
+                <span class="size-h4">{{ $aim }}</span>
+                <span class="size-h4">to {{ $dest }}</span>
+                {{ if ne $opName "" }}<span class="size-h5 color-subdue">{{ $opName }}</span>{{ end }}
+                {{ if ne $plat "" }}<span class="size-h5 color-subdue">Plat {{ $plat }}</span>{{ end }}
+              </div>
 
-          {{ $aim := .String "aimed_departure_time" }}
-          {{ $exp := .String "expected_departure_time" }}
-          {{ $status := .String "status" }}
-          {{ $plat := .String "platform" }}
-
-          <div class="flex justify-between items-center" style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.1);">
-            <div class="flex items-center gap-10">
-              <span class="size-h4">{{ $aim }}</span>
-              <span class="size-h4">to {{ $dest }}</span>
-              {{ if ne $opName "" }}<span class="size-h5 color-subdue">{{ $opName }}</span>{{ end }}
-              {{ if ne $plat "" }}<span class="size-h5 color-subdue">Plat {{ $plat }}</span>{{ end }}
+              <div class="text-right">
+                <span class="size-h5
+                  {{ if eq $status "ON TIME" }}color-positive
+                  {{ else if or (eq $status "LATE") (eq $status "DELAYED") }}color-negative
+                  {{ else }}color-primary{{ end }}">
+                  {{ if and (ne $exp "") (ne $exp $aim) }}{{ $status }} ({{ $exp }}){{ else }}{{ $status }}{{ end }}
+                </span>
+              </div>
             </div>
 
-            <div class="text-right">
-              <span class="size-h5
-                {{ if eq $status "ON TIME" }}color-positive
-                {{ else if or (eq $status "LATE") (eq $status "DELAYED") }}color-negative
-                {{ else }}color-primary{{ end }}">
-                {{ if and (ne $exp "") (ne $exp $aim) }}{{ $status }} ({{ $exp }}){{ else }}{{ $status }}{{ end }}
-              </span>
-            </div>
-          </div>
-
-          {{ $shown = add $shown 1 }}
-
+            {{ $shown = add $shown 1 }}
+          {{ end }}
         {{ end }}
-
-      {{ end }}
       </div>
 
       {{ if eq $shown 0 }}
         <div class="color-subdue">No departures matched your filters</div>
       {{ end }}
-
     {{ end }}
