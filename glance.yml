@@ -1,36 +1,88 @@
+- type: custom-api
+  title: Station Departures
+  cache: 60m
+  url: https://transportapi.com/v3/uk/train/station_timetables/STATION.json # Replace STATION with the CRS code for your station
+  query:
+    app_id: ${TRANSPORT_API_ID}
+    app_key: ${TRANSPORT_API_KEY}
+    live: true
 
-          - type: custom-api
-            title: FROM → TO
-            cache: 1m
-            url: https://transportapi.com/v3/uk/train/station_timetables/DEP.json?app_id=${TRANSPORT_API_ID}&app_key=${TRANSPORT_API_KEY}&live=true
-            template: |
-              {{ $services := .JSON.Array "departures.all" }}
-              <div class="flex flex-column gap-5">
-                {{ $count := 0 }}
-                {{ range $services }}
-                  {{ $dest := .String "destination_name" }}
-                  {{ $op := .String "operator_name" }}
-                  {{ if and (eq $dest "London Cannon Street") (eq $op "Southeastern") }}
-                    {{ $count = add $count 1 }}
-                    {{ $aim := .String "aimed_departure_time" }}
-                    {{ $exp := .String "expected_departure_time" }}
-                    {{ $status := .String "status" }}
+    # Optional filters (COMMENTED OUT)
+    # operator: SE                      # Example: Southeastern is "SE"
+    # destination: London Cannon Street # Match depends on API field naming
+    # limit: 6                          # Widget-side limit shown below is more reliable
 
-                    <div class="flex justify-between items-center" style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.1);">
-                      <div class="flex items-center gap-10">
-                        <span class="size-h4">{{ $aim }}</span>
-                        <span class="size-h4">Cannon Street</span>
-                      </div>
-                      <div class="text-right">
-                        <span class="size-h5 {{ if eq $status "ON TIME" }}color-positive{{ else if or (eq $status "LATE") (eq $status "DELAYED") }}color-negative{{ else }}color-primary{{ end }}">
-                          {{ if and (ne $exp "") (ne $exp $aim) }}{{ $status }} ({{ $exp }}){{ else }}{{ $status }}{{ end }}
-                        </span>
-                      </div>
-                    </div>
-                  {{ end }}
-                {{ end }}
+  template: |
+    {{/* ======================
+         OPTIONAL FILTERS
+         Uncomment and set values if you want filtering
+         ====================== */}}
 
-                {{ if eq $count 0 }}
-                  <div class="color-subdue">No Southeastern services to Cannon Street</div>
-                {{ end }}
-              </div>
+    {{/* Filter values (uncomment to activate) */}}
+    {{/* $wantOperator := "SE" */}}                    {{/* e.g. "SE" for Southeastern */}}
+    {{/* $wantDestination := "London Cannon Street" */}}
+    {{/* $maxRows := 6 */}}
+
+    {{/* Default row limit if you don't set $maxRows above */}}
+    {{ $maxRowsDefault := 8 }}
+    {{ $maxRows := (.Vars.IntOr "maxRows" $maxRowsDefault) }}
+
+    {{ $services := .JSON.Array "departures.all" }}
+    {{ if eq (len $services) 0 }}
+      <div class="color-subdue">No departures</div>
+    {{ else }}
+
+      {{ $shown := 0 }}
+
+      <div class="flex flex-column gap-5">
+      {{ range $services }}
+
+        {{/* Stop if we've shown enough rows */}}
+        {{ if ge $shown $maxRows }}{{ break }}{{ end }}
+
+        {{ $opCode := .String "operator" }}
+        {{ $opName := .String "operator_name" }}
+        {{ $dest := .String "destination_name" }}
+
+        {{/* Filtering logic (inactive unless you set $wantOperator/$wantDestination) */}}
+        {{ $ok := true }}
+        {{/* if and (ne $wantOperator "") (ne $opCode $wantOperator) }}{{ $ok = false }}{{ end */}}
+        {{/* if and (ne $wantDestination "") (ne $dest $wantDestination) }}{{ $ok = false }}{{ end */}}
+
+        {{ if $ok }}
+
+          {{ $aim := .String "aimed_departure_time" }}
+          {{ $exp := .String "expected_departure_time" }}
+          {{ $status := .String "status" }}
+          {{ $plat := .String "platform" }}
+
+          <div class="flex justify-between items-center" style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.1);">
+            <div class="flex items-center gap-10">
+              <span class="size-h4">{{ $aim }}</span>
+              <span class="size-h4">to {{ $dest }}</span>
+              {{ if ne $opName "" }}<span class="size-h5 color-subdue">{{ $opName }}</span>{{ end }}
+              {{ if ne $plat "" }}<span class="size-h5 color-subdue">Plat {{ $plat }}</span>{{ end }}
+            </div>
+
+            <div class="text-right">
+              <span class="size-h5
+                {{ if eq $status "ON TIME" }}color-positive
+                {{ else if or (eq $status "LATE") (eq $status "DELAYED") }}color-negative
+                {{ else }}color-primary{{ end }}">
+                {{ if and (ne $exp "") (ne $exp $aim) }}{{ $status }} ({{ $exp }}){{ else }}{{ $status }}{{ end }}
+              </span>
+            </div>
+          </div>
+
+          {{ $shown = add $shown 1 }}
+
+        {{ end }}
+
+      {{ end }}
+      </div>
+
+      {{ if eq $shown 0 }}
+        <div class="color-subdue">No departures matched your filters</div>
+      {{ end }}
+
+    {{ end }}
