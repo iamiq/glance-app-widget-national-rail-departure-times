@@ -3,7 +3,8 @@
           - type: custom-api
             title: Deptford Departures
             cache: 1m
-            url: "https://transportapi.com/v3/uk/train/station_timetables/DEP.json?app_id=${TRANSPORT_API_ID}&app_key=${TRANSPORT_API_KEY}&live=true"
+            url: "https://transportapi.com/v3/uk/train/station_timetables/STATION.json?app_id=${TRANSPORT_API_ID}&app_key=${TRANSPORT_API_KEY}&live=true"
+            #change STATION.json to the crs code of your station
             template: |
               {{ $services := .JSON.Array "departures.all" }}
               <div class="flex flex-column gap-5">
