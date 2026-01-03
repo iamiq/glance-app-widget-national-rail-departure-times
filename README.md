@@ -26,6 +26,10 @@ So, i made one and here i explain how to add **live National Rail departures for
 - Push feed requires Kafka or similar infrastructure
 - OpenLDBWS registration is often unavailable, at least I tried for 1 month and failed
 
+If you manage to get access to [OpenLDBWS](https://realtime.nationalrail.co.uk/OpenLDBWSRegistration) then you don't need to worry about `cache: 60m` that is mentioned later. I am still not lucky enough to get in.
+
+<img width="801" height="342" alt="image" src="https://github.com/user-attachments/assets/5ac5605d-2690-4e8c-8292-48dda2d041ff" />
+
 ### TransportAPI
 - Simple REST-based JSON API
 - Uses Network Rail data for live services
