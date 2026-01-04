@@ -1,42 +1,60 @@
-          - type: clock
+- type: clock
+- type: custom-api
+  title: YOUR_STATION → YOUR_DESTINATION
+  cache: 1m
+  url: "https://transportapi.com/v3/uk/train/station_timetables/YOUR_STATION_CODE.json?app_id=${TRANSPORT_API_ID}&app_key=${TRANSPORT_API_KEY}&live=true"
+  # Replace YOUR_STATION_CODE with the CRS code of your station (e.g., DEP for Deptford, PAD for Paddington)
+  # Get CRS codes from: https://www.nationalrail.co.uk/stations/
+  template: |
+    {{ $departures := .JSON.Get "departures" }}
+    {{ $all := $departures.Array "all" }}
+    <div class="flex flex-column gap-5">
+      {{ $count := 0 }}
+      {{ range $all }}
+        {{ $dest := .String "destination_name" }}
+        {{ $op := .String "operator_name" }}
+        {{ if and (eq $dest "YOUR_DESTINATION_NAME") (eq $op "YOUR_OPERATOR_NAME") }}
+          {{ $count = add $count 1 }}
+          {{ $aim := .String "aimed_departure_time" }}
+          {{ $exp := .String "expected_departure_time" }}
+          {{ $status := .String "status" }}
 
-          - type: custom-api
-            title: Deptford Departures
-            cache: 1m
-            url: "https://transportapi.com/v3/uk/train/station_timetables/STATION.json?app_id=${TRANSPORT_API_ID}&app_key=${TRANSPORT_API_KEY}&live=true"
-            #change STATION.json to the crs code of your station
-            template: |
-              {{ $services := .JSON.Array "departures.all" }}
-              <div class="flex flex-column gap-5">
-                {{ if eq (len $services) 0 }}
-                  <div class="color-subdue">No departures</div>
-                {{ else }}
-                  {{ range $services }}
-                    {{ $aim := .String "aimed_departure_time" }}
-                    {{ $exp := .String "expected_departure_time" }}
-                    {{ $dest := .String "destination_name" }}
-                    {{ $op := .String "operator_name" }}
-                    {{ $status := .String "status" }}
-#If you want a specific station
-# {{ if and (eq $dest "STATION NAME") (eq $op "OPERATOR NAME") }}
-#   {{ $count = add $count 1 }}
-#   {{ $aim := .String "aimed_departure_time" }}
-#   {{ $exp := .String "expected_departure_time" }}
-#   {{ $status := .String "status" }}
-# {{ end }}
+          <div class="flex justify-between items-center" style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.1);">
+            <div class="flex items-center gap-10">
+              <span class="size-h4">{{ $aim }}</span>
+              <span class="size-h4">YOUR_DESTINATION_SHORT_NAME</span>
+            </div>
+            <div class="text-right">
+              <span class="size-h5 {{ if eq $status "ON TIME" }}color-positive{{ else if or (eq $status "LATE") (eq $status "DELAYED") }}color-negative{{ else }}color-primary{{ end }}">
+                {{ if and (ne $exp "") (ne $exp $aim) }}{{ $exp }}{{ else }}{{ $status }}{{ end }}
+              </span>
+            </div>
+          </div>
+        {{ end }}
+      {{ end }}
 
-                    <div class="flex justify-between items-center" style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.1);">
-                      <div class="flex items-center gap-10">
-                        <span class="size-h4">{{ $aim }}</span>
-                        <span class="size-h4">to {{ $dest }}</span>
-                        {{ if ne $op "" }}<span class="size-h5 color-subdue">{{ $op }}</span>{{ end }}
-                      </div>
-                      <div class="text-right">
-                        <span class="size-h5 {{ if eq $status "ON TIME" }}color-positive{{ else if or (eq $status "LATE") (eq $status "DELAYED") }}color-negative{{ else }}color-primary{{ end }}">
-                          {{ if and (ne $exp "") (ne $exp $aim) }}{{ $status }} ({{ $exp }}){{ else }}{{ $status }}{{ end }}
-                        </span>
-                      </div>
-                    </div>
-                  {{ end }}
-                {{ end }}
+      {{ if eq $count 0 }}
+        <div class="color-subdue" style="margin-bottom:12px;">No YOUR_DESTINATION_SHORT_NAME services currently running</div>
+        <div class="color-subdue size-h6" style="margin-bottom:8px;">Alternative: YOUR_ALTERNATIVE_DESTINATION trains</div>
+        {{ range $all }}
+          {{ $dest := .String "destination_name" }}
+          {{ $op := .String "operator_name" }}
+          {{ if and (eq $dest "YOUR_ALTERNATIVE_DESTINATION_NAME") (eq $op "YOUR_OPERATOR_NAME") }}
+            {{ $aim := .String "aimed_departure_time" }}
+            {{ $exp := .String "expected_departure_time" }}
+            {{ $status := .String "status" }}
+            <div class="flex justify-between items-center" style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.08);opacity:0.8;">
+              <div class="flex items-center gap-10">
+                <span class="size-h5">{{ $aim }}</span>
+                <span class="size-h5">YOUR_ALTERNATIVE_DESTINATION</span>
               </div>
+              <div class="text-right">
+                <span class="size-h6 {{ if eq $status "ON TIME" }}color-positive{{ else if or (eq $status "LATE") (eq $status "DELAYED") }}color-negative{{ else }}color-primary{{ end }}">
+                  {{ if and (ne $exp "") (ne $exp $aim) }}{{ $exp }}{{ else }}{{ $status }}{{ end }}
+                </span>
+              </div>
+            </div>
+          {{ end }}
+        {{ end }}
+      {{ end }}
+    </div>
