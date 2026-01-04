@@ -81,4 +81,33 @@ TRANSPORT_API_ID=your_app_id_here
 TRANSPORT_API_KEY=your_app_key_here
 ```
 
-## Step 4. Update your glance.yaml
+## Step 4. Find exact destination and operator names
+Before configuring your widget, you need to know the exact names the API uses for destinations and operators. Temporarily run this:
+
+```yaml
+- type: custom-api
+  title: YOUR_STATION Departures (Diagnostic)
+  cache: 1m
+  url: "https://transportapi.com/v3/uk/train/station_timetables/YOUR_STATION_CODE.json?app_id=${TRANSPORT_API_ID}&app_key=${TRANSPORT_API_KEY}&live=true"
+  template: |
+    {{ $departures := .JSON.Get "departures" }}
+    {{ $all := $departures.Array "all" }}
+    <div class="flex flex-column gap-5">
+      {{ range $all }}
+        {{ $dest := .String "destination_name" }}
+        {{ $op := .String "operator_name" }}
+        {{ $aim := .String "aimed_departure_time" }}
+        <div>{{ $aim }} - {{ $dest }} ({{ $op }})</div>
+      {{ end }}
+    </div>
+```
+
+## Step 5. Update your glance.yaml
+
+Replace the placeholders in the template below:
+- `YOUR_STATION_CODE` → Your station's CRS code (e.g., `DEP`)
+- `YOUR_DESTINATION_NAME` → Full destination name as shown in Step 4 (e.g., `London Cannon Street`)
+- `YOUR_DESTINATION_SHORT_NAME` → Short display name (e.g., `Cannon Street`)
+- `YOUR_OPERATOR_NAME` → Operator name as shown in Step 4 (e.g., `Southeastern`, `Great Western Railway`)
+- `YOUR_ALTERNATIVE_DESTINATION_NAME` → Alternative destination full name (e.g., `London Bridge`)
+- `YOUR_ALTERNATIVE_DESTINATION` → Alternative short name (e.g., `London Bridge`)
